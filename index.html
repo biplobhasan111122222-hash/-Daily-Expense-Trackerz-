@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" id="metaThemeColor" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Daily Expense" />
+  <title>Daily Expense & Loan Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent-color: #0f172a;
+      --accent-text: #ffffff;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+    ::-webkit-scrollbar {
+      height: 5px;
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.45);
+      border-radius: 9999px;
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes dropFade {
+      from { opacity: 0; transform: scale(0.95) translateY(-6px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .view-animate {
+      animation: fadeSlideUp 0.2s ease-out forwards;
+    }
+    .dropdown-animate {
+      animation: dropFade 0.15s ease-out forwards;
+      transform-origin: top right;
+    }
+    .accent-bg {
+      background-color: var(--accent-color) !important;
+      color: var(--accent-text) !important;
+    }
+    .accent-border {
+      border-color: var(--accent-color) !important;
+    }
+  </style>
+</head>
+<body id="appBody" class="min-h-screen flex flex-col bg-slate-50 text-slate-900 transition-colors duration-200 select-none sm:select-auto">
+
+  <!-- Top In-App Reminder Alarm Banner -->
+  <div id="inAppReminderBanner" class="hidden bg-amber-500 text-white px-4 py-3 shadow-lg sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <span class="text-xl animate-bounce">⏰</span>
+        <div>
+          <p class="font-bold text-sm">Daily Expense Reminder!</p>
+          <p class="text-xs text-amber-50">Ajker khoroj gulo entry korar somoy hoyeche!</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="switchView('expenseView'); openAddExpenseModal(); dismissReminderBanner();" class="bg-white text-amber-800 font-bold text-xs px-3 py-1.5 rounded-xl shadow active:scale-95 transition">
+          + Entry Now
+        </button>
+        <button onclick="dismissReminderBanner()" class="text-white/90 hover:text-white p-1.5 rounded-lg font-bold">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TOP APP BAR (ADAPTS BETWEEN MAIN VIEW & SECONDARY VIEWS)              -->
+  <!-- ===================================================================== -->
+  <header id="appHeader" class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md transition-colors">
+    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+
+      <!-- Left Area: App Icon/Title (On Daily Expense View) OR Back Button (On Other Views) -->
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- Back Button (Shown when in Secondary Views) -->
+        <button id="headerBackBtn" onclick="switchView('expenseView')"
+          class="hidden items-center justify-center w-10 h-10 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-800 active:scale-95 transition shrink-0"
+          aria-label="Back to Daily Expense">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <!-- App Logo Badge (Shown on Main Expense View) -->
+        <div id="headerAppLogo" class="w-10 h-10 rounded-2xl accent-bg flex items-center justify-center font-extrabold text-lg shadow-sm shrink-0">
+          ৳
+        </div>
+
+        <div class="min-w-0">
+          <h1 id="headerTitle" class="text-base sm:text-lg font-extrabold truncate leading-tight">Daily Expense</h1>
+          <p id="headerSubtitle" class="text-xs text-slate-500 font-medium truncate">November 2026</p>
+        </div>
+      </div>
+
+      <!-- Right Area: Install App Chip + Top-Right 3-Dot Menu -->
+      <div class="flex items-center gap-2 shrink-0 relative">
+        <button id="headerInstallBtn" onclick="triggerInstallApp()"
+          class="hidden text-xs font-bold px-3 py-2 rounded-xl accent-bg shadow-xs active:scale-95 transition">
+          📲 Install App
+        </button>
+
+        <!-- 3-Dot Menu Button -->
+        <div class="relative">
+          <button id="threeDotBtn" onclick="toggleMenuDropdown(event)" aria-label="Menu Options"
+            class="w-10 h-10 rounded-xl border border-slate-200 bg-slate-100/80 hover:bg-slate-200/80 active:scale-95 flex items-center justify-center text-slate-700 transition focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="5" r="2.2" />
+              <circle cx="12" cy="12" r="2.2" />
+              <circle cx="12" cy="19" r="2.2" />
+            </svg>
+          </button>
+
+          <!-- 3-Dot Dropdown Menu -->
+          <div id="threeDotDropdown" class="hidden dropdown-animate absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 text-slate-800">
+            <div class="px-4 py-1.5 border-b border-slate-100 flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">App Menu</span>
+              <span class="text-[10px] font-semibold text-slate-400">Switch Screen</span>
+            </div>
+
+            <!-- 0. Daily Expense (Main Interface) -->
+            <button onclick="switchView('expenseView')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition">
+              <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-sm">📋</span>
+              <div>
+                <p class="text-sm font-bold text-slate-800">Daily Expense</p>
+                <p class="text-[11px] text-slate-500">Main expense sheet</p>
+              </div>
+            </button>
+
+            <!-- 1. Net Total -->
+            <button onclick="switchView('netTotalView')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition">
+              <span class="w-8 h-8 rounded-xl bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">৳</span>
+              <div>
+                <p class="text-sm font-bold text-slate-800">Net Total</p>
+                <p class="text-[11px] text-slate-500">Month entry vs total expense</p>
+              </div>
+            </button>
+
+            <!-- 2. Loan -->
+            <button onclick="switchView('loanView')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition">
+              <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">⇄</span>
+              <div>
+                <p class="text-sm font-bold text-slate-800">Loan</p>
+                <p class="text-[11px] text-slate-500">Loan taken &amp; loan given</p>
+              </div>
+            </button>
+
+            <!-- 3. Setting Reminder -->
+            <button onclick="switchView('reminderView')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition">
+              <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">⏰</span>
+              <div class="flex-1">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-bold text-slate-800">Setting Reminder</p>
+                  <span id="menuReminderBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">OFF</span>
+                </div>
+                <p class="text-[11px] text-slate-500">Set daily entry alert time</p>
+              </div>
+            </button>
+
+            <div class="my-1 border-t border-slate-100"></div>
+
+            <!-- 4. Customised -->
+            <button onclick="switchView('customisedView')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition">
+              <span class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">⚙️</span>
+              <div>
+                <p class="text-sm font-bold text-slate-800">Customised</p>
+                <p class="text-[11px] text-slate-500">Edit columns, theme &amp; offline app</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- INTERFACE 1: DAILY EXPENSE VIEW (CLEAN, DEDICATED MAIN SCREEN)        -->
+  <!-- ===================================================================== -->
+  <main id="expenseView" class="view-animate flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 pt-4 pb-24 space-y-3.5">
+
+    <!-- Compact Month Selector & Color Legend Bar -->
+    <div class="card-surface bg-white rounded-2xl border border-slate-200/90 px-3.5 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <label for="monthFilter" class="text-xs font-bold uppercase tracking-wider text-slate-400">Month:</label>
+        <input type="month" id="monthFilter" onchange="handleMonthChange()"
+          class="text-xs sm:text-sm font-bold bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none text-slate-800" />
+      </div>
+
+      <div class="flex items-center gap-3 text-[11px] sm:text-xs font-semibold">
+        <span class="inline-flex items-center gap-1 text-red-600">
+          <span class="w-2 h-2 rounded-full bg-red-600"></span> Red = Khoroj
+        </span>
+        <span class="text-slate-400">|</span>
+        <span class="text-slate-500">Tap row to edit</span>
+      </div>
+    </div>
+
+    <!-- Pure Daily Expense Spreadsheet Table (Matches Hand-Drawn Sketch) -->
+    <div class="card-surface bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[680px]">
+          <thead id="expenseTableHead">
+            <!-- Dynamically generated columns (Date + Customisable Expense Columns + Daily Total + Edit) -->
+          </thead>
+          <tbody id="expenseTableBody" class="divide-y divide-slate-200 text-sm">
+            <!-- Dynamically generated rows -->
+          </tbody>
+          <tfoot id="expenseTableFooter" class="border-t-2 border-slate-300 font-bold text-xs sm:text-sm">
+            <!-- Dynamically generated column totals -->
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Floating Action Button (+ Add Daily Expense) -->
+    <button onclick="openAddExpenseModal()"
+      class="fixed bottom-6 right-5 sm:right-8 z-30 accent-bg px-5 py-3.5 rounded-full shadow-xl hover:opacity-95 active:scale-95 transition flex items-center gap-2 font-bold text-sm">
+      <span class="text-lg leading-none">+</span>
+      <span>Add Expense</span>
+    </button>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- INTERFACE 2A: NET TOTAL VIEW (SEPARATE SCREEN)                        -->
+  <!-- ===================================================================== -->
+  <section id="netTotalView" class="hidden view-animate flex-1 max-w-5xl w-full mx-auto px-4 py-5 pb-16 space-y-5">
+
+    <!-- 3 Big Financial Overview Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      <!-- Money Entry (Green) -->
+      <div class="bg-green-50 border border-green-200 rounded-2xl p-4 shadow-2xs">
+        <p class="text-xs font-bold uppercase tracking-wider text-green-800">Total Entry (Added)</p>
+        <p id="ntTotalAdded" class="text-2xl sm:text-3xl font-extrabold text-green-600 mt-1">0 TK</p>
+        <p class="text-xs text-green-700 mt-1">Ei month e mot tk entry korchi</p>
+      </div>
+
+      <!-- Net Expense (Red) -->
+      <div class="bg-red-50 border border-red-200 rounded-2xl p-4 shadow-2xs">
+        <p class="text-xs font-bold uppercase tracking-wider text-red-800">Total Net Expense</p>
+        <p id="ntTotalExpense" class="text-2xl sm:text-3xl font-extrabold text-red-600 mt-1">0 TK</p>
+        <p class="text-xs text-red-700 mt-1">Daily expense table er mot khoroj</p>
+      </div>
+
+      <!-- Remaining Balance -->
+      <div class="card-surface bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Net Balance</p>
+        <p id="ntNetBalance" class="text-2xl sm:text-3xl font-extrabold text-green-600 mt-1">0 TK</p>
+        <p class="text-xs text-slate-500 mt-1">Entry minus Expense</p>
+      </div>
+    </div>
+
+    <!-- Add Money / Budget Entry Card (Green) -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+      <div>
+        <h2 class="text-base font-extrabold flex items-center gap-2">
+          <span class="w-6 h-6 rounded-lg bg-green-100 text-green-700 flex items-center justify-center text-sm font-black">+</span>
+          <span>Add Money Entry (Account e Add Hobe)</span>
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Jei tk add hobe sheigulo <span class="text-green-600 font-bold">Green</span> colour e dekhabe.</p>
+      </div>
+
+      <form onsubmit="addMoneyEntry(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+        <div class="sm:col-span-3">
+          <input type="number" id="moneyAmount" required min="1" step="any" placeholder="Amount"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-extrabold text-green-600 bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500" />
+        </div>
+        <div class="sm:col-span-4">
+          <input type="date" id="moneyDate" required
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500" />
+        </div>
+        <div class="sm:col-span-3">
+          <input type="text" id="moneyNote" placeholder="Source (e.g. Salary / Home)"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500" />
+        </div>
+        <div class="sm:col-span-2">
+          <button type="submit" class="w-full h-full py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-700 active:scale-95 text-white font-bold text-sm transition shadow-xs">
+            + Add
+          </button>
+        </div>
+      </form>
+
+      <!-- Money Added History -->
+      <div class="pt-2 border-t border-slate-100">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Money Entry History (This Month)</p>
+        <div id="moneyEntryList" class="space-y-2">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Category-wise Expense Breakdown (Red) -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <h2 class="text-base font-extrabold mb-1">Category-Wise Expense Breakdown</h2>
+      <p class="text-xs text-slate-500 mb-3.5">Kothai kemon khoroj hoise (All in <span class="text-red-600 font-bold">Red</span>)</p>
+      <div id="categoryBreakdownList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- INTERFACE 2B: LOAN VIEW (SEPARATE SCREEN)                             -->
+  <!-- ===================================================================== -->
+  <section id="loanView" class="hidden view-animate flex-1 max-w-5xl w-full mx-auto px-4 py-5 pb-16 space-y-5">
+
+    <!-- Loan Summary Strip -->
+    <div class="grid grid-cols-2 gap-3.5">
+      <div class="bg-green-50 border border-green-200 rounded-2xl p-4">
+        <p class="text-xs font-bold uppercase text-green-800">Loan Taken (Ami Nichi)</p>
+        <p id="loanModalTotalTaken" class="text-2xl font-extrabold text-green-600 mt-1">0 TK</p>
+        <p class="text-[11px] text-green-700 mt-0.5">Account e asche (Green)</p>
+      </div>
+      <div class="bg-red-50 border border-red-200 rounded-2xl p-4">
+        <p class="text-xs font-bold uppercase text-red-800">Loan Given (Kewre Dichi)</p>
+        <p id="loanModalTotalGiven" class="text-2xl font-extrabold text-red-600 mt-1">0 TK</p>
+        <p class="text-[11px] text-red-700 mt-0.5">Account theke geche (Red)</p>
+      </div>
+    </div>
+
+    <!-- Add Loan Entry Card -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5">
+      <h2 class="text-base font-extrabold">Add New Loan Record</h2>
+
+      <form onsubmit="addLoanEntry(event)" class="space-y-3">
+        <div class="grid grid-cols-2 gap-2.5">
+          <label class="cursor-pointer">
+            <input type="radio" name="loanType" value="taken" checked class="peer sr-only" />
+            <div class="text-center py-2.5 px-3 rounded-xl border border-slate-300 peer-checked:bg-green-600 peer-checked:text-white peer-checked:border-green-600 font-bold text-xs sm:text-sm transition">
+              + Loan Taken (Ami Nichi)
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="loanType" value="given" class="peer sr-only" />
+            <div class="text-center py-2.5 px-3 rounded-xl border border-slate-300 peer-checked:bg-red-600 peer-checked:text-white peer-checked:border-red-600 font-bold text-xs sm:text-sm transition">
+              - Loan Given (Kewre Dichi)
+            </div>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+          <div class="sm:col-span-4">
+            <input type="text" id="loanPerson" required placeholder="Person Name (e.g. Rahim)"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-slate-500" />
+          </div>
+          <div class="sm:col-span-3">
+            <input type="number" id="loanAmount" required min="1" step="any" placeholder="Amount"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold bg-transparent focus:outline-none focus:ring-2 focus:ring-slate-500" />
+          </div>
+          <div class="sm:col-span-3">
+            <input type="date" id="loanDate" required
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-slate-500" />
+          </div>
+          <div class="sm:col-span-2">
+            <button type="submit" class="w-full h-full py-2.5 px-4 rounded-xl accent-bg font-bold text-sm active:scale-95 transition">
+              Save
+            </button>
+          </div>
+        </div>
+
+        <input type="text" id="loanNote" placeholder="Note (e.g. Cha nasta / emergency cash)"
+          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-slate-500" />
+      </form>
+    </div>
+
+    <!-- Loan History List -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-500 mb-3">All Loan Records</h3>
+      <div id="loanListContainer" class="space-y-2.5">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- INTERFACE 2C: REMINDER VIEW (SEPARATE SCREEN)                         -->
+  <!-- ===================================================================== -->
+  <section id="reminderView" class="hidden view-animate flex-1 max-w-2xl w-full mx-auto px-4 py-5 pb-16 space-y-5">
+
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-5">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl">⏰</div>
+        <div>
+          <h2 class="text-base sm:text-lg font-extrabold">Setting Daily Reminder</h2>
+          <p class="text-xs text-slate-500">Prothidin expense entry korar jonno specific time set korun</p>
+        </div>
+      </div>
+
+      <!-- Enable / Disable Toggle -->
+      <div class="flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-slate-50/70">
+        <div>
+          <p class="text-sm font-bold text-slate-800">Reminder Alarm</p>
+          <p class="text-xs text-slate-500" id="reminderStatusText">Currently disabled</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="reminderEnabledToggle" class="sr-only peer" onchange="toggleReminderSetting()">
+          <div class="w-12 h-6 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+        </label>
+      </div>
+
+      <!-- Time Picker -->
+      <div>
+        <label for="reminderTimeInput" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Reminder Time</label>
+        <input type="time" id="reminderTimeInput" value="22:00" onchange="saveReminderTime()"
+          class="w-full px-4 py-3.5 rounded-2xl border border-slate-300 text-lg font-extrabold bg-transparent focus:outline-none focus:ring-2 focus:ring-amber-500" />
+      </div>
+
+      <p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+        Note: Reminder check browser/app open thakle kaj kore. App fully bondho thakle protidin exact time-e alarm guaranteed noy. Notification permission dile supported browser-e alert dekhate pare.
+      </p>
+
+      <!-- Notification & Test Section -->
+      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-amber-900">Notification Status</span>
+          <span id="notifPermissionStatus" class="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800">Checking...</span>
+        </div>
+        <div class="flex flex-wrap gap-2.5">
+          <button type="button" onclick="requestNotifPermission()" class="text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl transition">
+            Allow Notification
+          </button>
+          <button type="button" onclick="triggerTestReminder()" class="text-xs font-bold bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 px-4 py-2.5 rounded-xl transition">
+            Test Reminder Alert
+          </button>
+        </div>
+      </div>
+
+      <button onclick="saveReminderAndBack()" class="w-full py-3 rounded-xl accent-bg font-bold text-sm active:scale-[0.99] transition shadow-sm">
+        Save &amp; Back to Daily Expense
+      </button>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- INTERFACE 2D: CUSTOMISED VIEW (PERSONALIZATION & OFFLINE DOWNLOAD)    -->
+  <!-- ===================================================================== -->
+  <section id="customisedView" class="hidden view-animate flex-1 max-w-3xl w-full mx-auto px-4 py-5 pb-16 space-y-5">
+
+    <!-- 1. Install & Download Offline App Card -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center gap-2.5">
+        <span class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">📲</span>
+        <div>
+          <h2 class="text-base font-extrabold">Install / Download Offline App</h2>
+          <p class="text-xs text-slate-500">Phone e App install korun ba offline file download korun</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2.5">
+        <button onclick="triggerInstallApp()" class="px-4 py-2.5 rounded-xl accent-bg text-xs sm:text-sm font-bold active:scale-95 transition shadow-xs">
+          📲 Install App on Phone/PC
+        </button>
+        <button onclick="downloadStandaloneOfflineApp()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold active:scale-95 transition shadow-xs">
+          ⬇ Download Offline App (index.html)
+        </button>
+      </div>
+
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 space-y-1">
+        <p class="font-bold text-slate-800">Android / iPhone e App korar niyom:</p>
+        <p>1. Chrome browser er upore dane <strong>3-dot menu (⋮)</strong> te tap korun.</p>
+        <p>2. <strong>"Install app"</strong> ba <strong>"Add to Home screen"</strong> e click korun—internet charai cholbe!</p>
+      </div>
+    </div>
+
+    <!-- 2. App Identity & Currency Customisation -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center gap-2.5">
+        <span class="w-9 h-9 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold">📱</span>
+        <div>
+          <h2 class="text-base font-extrabold">App Name &amp; Currency</h2>
+          <p class="text-xs text-slate-500">Nijer moto app er naam ar currency set korun</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-bold text-slate-500 mb-1">App Title</label>
+          <input type="text" id="customAppTitle" placeholder="e.g. Amar Khoroj App"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold bg-transparent focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Currency Symbol</label>
+          <input type="text" id="customCurrency" maxlength="5" placeholder="TK"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold bg-transparent focus:outline-none" />
+        </div>
+      </div>
+
+      <button onclick="saveAppIdentity()" class="px-4 py-2.5 rounded-xl accent-bg text-xs sm:text-sm font-bold active:scale-95 transition">
+        Save App Name &amp; Currency
+      </button>
+    </div>
+
+    <!-- 3. Expense Columns / Categories Customisation -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <span class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">📊</span>
+          <div>
+            <h2 class="text-base font-extrabold">Customise Expense Columns</h2>
+            <p class="text-xs text-slate-500">Table er column rename, add ba delete korun</p>
+          </div>
+        </div>
+        <button onclick="resetDefaultColumns()" class="text-xs font-semibold text-slate-500 hover:text-slate-800 underline">
+          Reset Default
+        </button>
+      </div>
+
+      <!-- Existing Columns List -->
+      <div id="customColumnsList" class="space-y-2">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Add New Column Form -->
+      <form onsubmit="addNewCustomColumn(event)" class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
+        <input type="text" id="newColLabel" required placeholder="New column name (e.g. Mobile Bill / Rent)"
+          class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-transparent focus:outline-none" />
+        <input type="text" id="newColSub" placeholder="Sub-label (optional)"
+          class="sm:w-44 px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-transparent focus:outline-none" />
+        <button type="submit" class="px-4 py-2.5 rounded-xl accent-bg text-xs sm:text-sm font-bold whitespace-nowrap active:scale-95 transition">
+          + Add Column
+        </button>
+      </form>
+    </div>
+
+    <!-- 4. Theme & Appearance Customisation -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center gap-2.5">
+        <span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">🎨</span>
+        <div>
+          <h2 class="text-base font-extrabold">Theme &amp; App Look</h2>
+          <p class="text-xs text-slate-500">Dark mode &amp; header accent color choose korun</p>
+        </div>
+      </div>
+
+      <!-- Dark Mode Switch -->
+      <div class="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200">
+        <div>
+          <p class="text-sm font-bold">Dark Mode</p>
+          <p class="text-xs text-slate-500">Night friendly dark interface</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="darkModeToggle" class="sr-only peer" onchange="toggleDarkMode()">
+          <div class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
+        </label>
+      </div>
+
+      <!-- Accent Color Picker Swatches -->
+      <div>
+        <p class="text-xs font-bold text-slate-500 mb-2">App Accent Color</p>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="setAccentTheme('#0f172a')" class="w-9 h-9 rounded-full bg-slate-900 ring-2 ring-offset-2 ring-slate-400" title="Midnight Slate"></button>
+          <button onclick="setAccentTheme('#1d4ed8')" class="w-9 h-9 rounded-full bg-blue-700 ring-2 ring-offset-2 ring-transparent hover:ring-blue-400" title="Royal Blue"></button>
+          <button onclick="setAccentTheme('#047857')" class="w-9 h-9 rounded-full bg-emerald-700 ring-2 ring-offset-2 ring-transparent hover:ring-emerald-400" title="Emerald"></button>
+          <button onclick="setAccentTheme('#6d28d9')" class="w-9 h-9 rounded-full bg-violet-700 ring-2 ring-offset-2 ring-transparent hover:ring-violet-400" title="Violet"></button>
+          <button onclick="setAccentTheme('#be123c')" class="w-9 h-9 rounded-full bg-rose-700 ring-2 ring-offset-2 ring-transparent hover:ring-rose-400" title="Crimson"></button>
+          <button onclick="setAccentTheme('#b45309')" class="w-9 h-9 rounded-full bg-amber-700 ring-2 ring-offset-2 ring-transparent hover:ring-amber-400" title="Amber"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Backup Data -->
+    <div class="card-surface bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center gap-2.5">
+        <span class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">💾</span>
+        <div>
+          <h2 class="text-base font-extrabold">Backup &amp; Restore Data</h2>
+          <p class="text-xs text-slate-500">Sob hishab-khatab JSON file akare save rakhun</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2.5">
+        <button onclick="exportBackupJSON()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-700 transition">
+          ⬇ Export Backup (JSON)
+        </button>
+        <label class="px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-bold cursor-pointer hover:bg-slate-100 transition">
+          ⬆ Import Backup
+          <input type="file" accept=".json" onchange="importBackupJSON(event)" class="hidden" />
+        </label>
+        <button onclick="confirmResetAllData()" class="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs font-bold hover:bg-red-100 transition">
+          🗑 Reset All Data
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: ADD / EDIT DAILY EXPENSE ENTRY                                 -->
+  <!-- ===================================================================== -->
+  <div id="expenseModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="card-surface bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden view-animate max-h-[90vh] flex flex-col">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 id="expenseModalTitle" class="text-base font-extrabold">Add Daily Expense</h3>
+        <button onclick="closeExpenseModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <form id="expenseForm" onsubmit="saveExpenseRow(event)" class="p-5 space-y-4 overflow-y-auto">
+        <input type="hidden" id="expenseId" />
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Date</label>
+          <input type="date" id="expDate" required
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold bg-transparent focus:outline-none" />
+        </div>
+
+        <!-- Dynamically generated inputs matching Customised Columns -->
+        <div id="dynamicExpenseInputs" class="grid grid-cols-2 gap-3">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeExpenseModal()" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-100 transition">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold accent-bg shadow-sm active:scale-95 transition">
+            Save Expense
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom Confirmation Dialog -->
+  <div id="confirmDialog" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+    <div class="card-surface bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+      <h4 id="confirmTitle" class="text-base font-extrabold">Are you sure?</h4>
+      <p id="confirmMessage" class="text-xs text-slate-600">This action cannot be undone.</p>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeConfirmDialog()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700">Cancel</button>
+        <button id="confirmOkBtn" class="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Feedback -->
+  <div id="toastMsg" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-xl z-50 whitespace-nowrap">
+    Saved!
+  </div>
+
+  <script>
+    // =========================================================================
+    // PWA MANIFEST & OFFLINE SERVICE WORKER SETUP
+    // =========================================================================
+    (function setupPWA() {
+      const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#0f172a"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="260" fill="#ffffff">৳</text></svg>`;
+      const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconSvg);
+
+      const manifest = {
+        name: 'Daily Expense & Loan Tracker',
+        short_name: 'Expense App',
+        start_url: '.',
+        display: 'standalone',
+        background_color: '#f8fafc',
+        theme_color: '#0f172a',
+        icons: [
+          { src: iconUrl, sizes: '192x192', type: 'image/svg+xml' },
+          { src: iconUrl, sizes: '512x512', type: 'image/svg+xml' }
+        ]
+      };
+      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = URL.createObjectURL(manifestBlob);
+      document.head.appendChild(manifestLink);
+
+      const appleIcon = document.createElement('link');
+      appleIcon.rel = 'apple-touch-icon';
+      appleIcon.href = iconUrl;
+      document.head.appendChild(appleIcon);
+
+      // Register inline Service Worker when served over HTTPS/localhost
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        const swCode = `
+          const CACHE_NAME = 'expense-tracker-offline-v1';
+          self.addEventListener('install', (e) => {
+            self.skipWaiting();
+          });
+          self.addEventListener('activate', (e) => {
+            e.waitUntil(self.clients.claim());
+          });
+          self.addEventListener('fetch', (e) => {
+            e.respondWith(
+              fetch(e.request).then(res => {
+                const copy = res.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(e.request, copy)).catch(() => {});
+                return res;
+              }).catch(() => caches.match(e.request))
+            );
+          });
+        `;
+        const swBlob = new Blob([swCode], { type: 'application/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+      }
+    })();
+
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      document.getElementById('headerInstallBtn').classList.remove('hidden');
+    });
+
+    function triggerInstallApp() {
+      if (!deferredInstallPrompt) {
+        showToast('Browser menu (⋮) -> "Add to Home screen" click korun!');
+        return;
+      }
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(() => {
+        deferredInstallPrompt = null;
+        document.getElementById('headerInstallBtn').classList.add('hidden');
+      });
+    }
+
+    function downloadStandaloneOfflineApp() {
+      try {
+        const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Daily-Expense-App.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Offline App downloaded! Open it in Chrome.');
+      } catch (err) {
+        showToast('Could not download file.');
+      }
+    }
+
+    // =========================================================================
+    // STORAGE KEYS & DEFAULT SETTINGS
+    // =========================================================================
+    const STORAGE_KEYS = {
+      EXPENSES: 'det_app_expenses_v2',
+      MONEY_ENTRIES: 'det_app_money_v2',
+      LOANS: 'det_app_loans_v2',
+      REMINDER: 'det_app_reminder_v2',
+      CUSTOM: 'det_app_custom_v2'
+    };
+
+    const DEFAULT_COLUMNS = [
+      { id: 'breakfast', label: 'Breakfast', sub: '' },
+      { id: 'lunchDinner', label: 'Lunch & Dinner', sub: '' },
+      { id: 'snacks', label: 'Snacks Bill', sub: '' },
+      { id: 'adda', label: 'Adda', sub: '(Hanging)' },
+      { id: 'transport', label: 'Transport', sub: '' }
+    ];
+
+    const DEFAULT_CUSTOM_SETTINGS = {
+      appTitle: 'Daily Expense',
+      currency: 'TK',
+      accentColor: '#0f172a',
+      darkMode: false,
+      columns: DEFAULT_COLUMNS
+    };
+
+    function getTodayISO() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    function getCurrentMonthISO() {
+      return getTodayISO().slice(0, 7);
+    }
+
+    function initDefaultData() {
+      if (!localStorage.getItem(STORAGE_KEYS.CUSTOM)) {
+        localStorage.setItem(STORAGE_KEYS.CUSTOM, JSON.stringify(DEFAULT_CUSTOM_SETTINGS));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.EXPENSES)) {
+        localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.MONEY_ENTRIES)) {
+        localStorage.setItem(STORAGE_KEYS.MONEY_ENTRIES, JSON.stringify([]));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.LOANS)) {
+        localStorage.setItem(STORAGE_KEYS.LOANS, JSON.stringify([]));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.REMINDER)) {
+        localStorage.setItem(STORAGE_KEYS.REMINDER, JSON.stringify({ enabled: false, time: '22:00', lastTriggeredDate: '' }));
+      }
+    }
+
+    function getCustomSettings() {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOM) || 'null');
+      if (!raw) return { ...DEFAULT_CUSTOM_SETTINGS, columns: [...DEFAULT_COLUMNS] };
+      if (!Array.isArray(raw.columns) || raw.columns.length === 0) raw.columns = [...DEFAULT_COLUMNS];
+      return raw;
+    }
+    function setCustomSettings(cfg) {
+      localStorage.setItem(STORAGE_KEYS.CUSTOM, JSON.stringify(cfg));
+    }
+
+    function getExpenses() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
+    }
+    function setExpenses(list) {
+      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(list));
+    }
+
+    function getMoneyEntries() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.MONEY_ENTRIES) || '[]');
+    }
+    function setMoneyEntries(list) {
+      localStorage.setItem(STORAGE_KEYS.MONEY_ENTRIES, JSON.stringify(list));
+    }
+
+    function getLoans() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.LOANS) || '[]');
+    }
+    function setLoans(list) {
+      localStorage.setItem(STORAGE_KEYS.LOANS, JSON.stringify(list));
+    }
+
+    function getReminderConfig() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.REMINDER) || '{"enabled":false,"time":"22:00","lastTriggeredDate":""}');
+    }
+    function setReminderConfig(cfg) {
+      localStorage.setItem(STORAGE_KEYS.REMINDER, JSON.stringify(cfg));
+    }
+
+    // =========================================================================
+    // FORMATTING & THEME APPLICATION
+    // =========================================================================
+    function formatMoney(num) {
+      const { currency } = getCustomSettings();
+      const val = Number(num) || 0;
+      return `${val.toLocaleString('en-IN')} ${currency || 'TK'}`;
+    }
+
+    function formatDisplayDate(isoDate) {
+      if (!isoDate) return '';
+      const [y, m, d] = isoDate.split('-');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${d} ${months[parseInt(m, 10) - 1]} ${y}`;
+    }
+
+    function formatMonthTitle(yyyyMm) {
+      if (!yyyyMm) return '';
+      const [y, m] = yyyyMm.split('-');
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      return `${months[parseInt(m, 10) - 1]} ${y}`;
+    }
+
+    function applyThemeAndBranding() {
+      const cfg = getCustomSettings();
+      document.documentElement.style.setProperty('--accent-color', cfg.accentColor || '#0f172a');
+      document.getElementById('metaThemeColor').setAttribute('content', cfg.accentColor || '#0f172a');
+      document.title = cfg.appTitle || 'Daily Expense';
+
+      const body = document.getElementById('appBody');
+      const header = document.getElementById('appHeader');
+      const surfaces = document.querySelectorAll('.card-surface');
+
+      if (cfg.darkMode) {
+        body.classList.remove('bg-slate-50', 'text-slate-900');
+        body.classList.add('bg-slate-950', 'text-slate-100');
+        header.classList.remove('bg-white/95', 'border-slate-200/80');
+        header.classList.add('bg-slate-900/95', 'border-slate-800');
+        surfaces.forEach(el => {
+          el.classList.remove('bg-white', 'border-slate-200', 'border-slate-200/90');
+          el.classList.add('bg-slate-900', 'border-slate-800');
+        });
+      } else {
+        body.classList.add('bg-slate-50', 'text-slate-900');
+        body.classList.remove('bg-slate-950', 'text-slate-100');
+        header.classList.add('bg-white/95', 'border-slate-200/80');
+        header.classList.remove('bg-slate-900/95', 'border-slate-800');
+        surfaces.forEach(el => {
+          el.classList.add('bg-white', 'border-slate-200');
+          el.classList.remove('bg-slate-900', 'border-slate-800');
+        });
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastMsg');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => toast.classList.add('hidden'), 2600);
+    }
+
+    // =========================================================================
+    // VIEW SWITCHING (SEPARATE INTERFACES)
+    // =========================================================================
+    let currentView = 'expenseView';
+    let selectedMonth = getCurrentMonthISO();
+
+    function switchView(viewId) {
+      document.getElementById('threeDotDropdown').classList.add('hidden');
+      currentView = viewId;
+
+      const views = ['expenseView', 'netTotalView', 'loanView', 'reminderView', 'customisedView'];
+      views.forEach(v => {
+        const el = document.getElementById(v);
+        if (v === viewId) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+
+      const cfg = getCustomSettings();
+      const backBtn = document.getElementById('headerBackBtn');
+      const appLogo = document.getElementById('headerAppLogo');
+      const titleEl = document.getElementById('headerTitle');
+      const subEl = document.getElementById('headerSubtitle');
+
+      if (viewId === 'expenseView') {
+        backBtn.classList.add('hidden');
+        backBtn.classList.remove('flex');
+        appLogo.classList.remove('hidden');
+        titleEl.textContent = cfg.appTitle || 'Daily Expense';
+        subEl.textContent = formatMonthTitle(selectedMonth);
+        renderExpenseTable();
+      } else {
+        backBtn.classList.remove('hidden');
+        backBtn.classList.add('flex');
+        appLogo.classList.add('hidden');
+
+        if (viewId === 'netTotalView') {
+          titleEl.textContent = 'Net Total';
+          subEl.textContent = formatMonthTitle(selectedMonth);
+          document.getElementById('moneyDate').value = getTodayISO();
+          renderNetTotalView();
+        } else if (viewId === 'loanView') {
+          titleEl.textContent = 'Loan Manager';
+          subEl.textContent = 'Taken (Green) & Given (Red)';
+          document.getElementById('loanDate').value = getTodayISO();
+          renderLoanView();
+        } else if (viewId === 'reminderView') {
+          titleEl.textContent = 'Setting Reminder';
+          subEl.textContent = 'Daily expense entry alert';
+          renderReminderView();
+        } else if (viewId === 'customisedView') {
+          titleEl.textContent = 'Customised';
+          subEl.textContent = 'Personalize & download offline app';
+          renderCustomisedView();
+        }
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleMenuDropdown(e) {
+      e.stopPropagation();
+      document.getElementById('threeDotDropdown').classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('threeDotDropdown');
+      const btn = document.getElementById('threeDotBtn');
+      if (dropdown && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    function handleMonthChange() {
+      selectedMonth = document.getElementById('monthFilter').value || getCurrentMonthISO();
+      document.getElementById('headerSubtitle').textContent = formatMonthTitle(selectedMonth);
+      renderExpenseTable();
+    }
+
+    // =========================================================================
+    // INTERFACE 1: DAILY EXPENSE TABLE & CRUD
+    // =========================================================================
+    function renderExpenseTable() {
+      const cfg = getCustomSettings();
+      const cols = cfg.columns;
+      const thead = document.getElementById('expenseTableHead');
+      const tbody = document.getElementById('expenseTableBody');
+      const tfoot = document.getElementById('expenseTableFooter');
+
+      const headerBg = cfg.darkMode ? 'bg-slate-800/90 text-slate-200 border-slate-700' : 'bg-slate-100/95 text-slate-800 border-slate-300';
+      const borderCol = cfg.darkMode ? 'border-slate-800' : 'border-slate-200';
+
+      thead.innerHTML = `
+        <tr class="${headerBg} border-b-2 text-xs sm:text-sm font-bold">
+          <th class="py-3.5 px-3.5 border-r ${borderCol} w-32">Date</th>
+          ${cols.map(c => `
+            <th class="py-3.5 px-3 border-r ${borderCol} text-center">
+              ${c.label}
+              ${c.sub ? `<span class="block text-[10px] font-normal text-slate-400">${c.sub}</span>` : ''}
+            </th>
+          `).join('')}
+          <th class="py-3.5 px-3.5 border-r ${borderCol} text-center bg-red-500/10 text-red-600">Daily Total</th>
+          <th class="py-3.5 px-2.5 text-center w-16">Edit</th>
+        </tr>
+      `;
+
+      const filtered = getExpenses()
+        .filter(item => item.date && item.date.startsWith(selectedMonth))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="${cols.length + 3}" class="py-12 px-4 text-center text-slate-400">
+              <p class="text-sm font-semibold">Ei month e kono expense entry nai.</p>
+              <p class="text-xs mt-1">Nicher "+ Add Expense" button e click kore ajker khoroj add korun.</p>
+            </td>
+          </tr>
+        `;
+        tfoot.innerHTML = '';
+        return;
+      }
+
+      const colSums = {};
+      cols.forEach(c => colSums[c.id] = 0);
+      let grandTotal = 0;
+
+      tbody.innerHTML = filtered.map(row => {
+        const vals = row.values || {};
+        let rowTotal = 0;
+
+        const cellsHtml = cols.map(c => {
+          const val = Number(vals[c.id]) || 0;
+          colSums[c.id] += val;
+          rowTotal += val;
+
+          return `
+            <td onclick="openEditExpenseModal('${row.id}')" class="py-3 px-3 border-r ${borderCol} text-center cursor-pointer hover:bg-red-500/5 transition">
+              ${val > 0
+                ? `<span class="font-bold text-red-600">${formatMoney(val)}</span>`
+                : `<span class="text-slate-400/50">-</span>`}
+            </td>
+          `;
+        }).join('');
+
+        grandTotal += rowTotal;
+
+        return `
+          <tr class="hover:bg-slate-500/5 transition">
+            <td class="py-3 px-3.5 border-r ${borderCol} font-semibold whitespace-nowrap text-xs sm:text-sm">
+              ${formatDisplayDate(row.date)}
+            </td>
+            ${cellsHtml}
+            <td class="py-3 px-3.5 border-r ${borderCol} text-center bg-red-500/5 font-extrabold text-red-600 whitespace-nowrap">
+              ${formatMoney(rowTotal)}
+            </td>
+            <td class="py-3 px-2 text-center whitespace-nowrap">
+              <div class="inline-flex items-center gap-0.5">
+                <button onclick="openEditExpenseModal('${row.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700" title="Edit">✎</button>
+                <button onclick="deleteExpenseRow('${row.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-red-600" title="Delete">🗑</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const footerBg = cfg.darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-100/80 border-slate-300';
+      tfoot.innerHTML = `
+        <tr class="${footerBg}">
+          <td class="py-3.5 px-3.5 border-r ${borderCol}">Total Khoroj</td>
+          ${cols.map(c => `
+            <td class="py-3.5 px-3 border-r ${borderCol} text-center text-red-600 whitespace-nowrap">
+              ${formatMoney(colSums[c.id])}
+            </td>
+          `).join('')}
+          <td class="py-3.5 px-3.5 border-r ${borderCol} text-center bg-red-500/15 text-red-600 font-extrabold whitespace-nowrap">
+            ${formatMoney(grandTotal)}
+          </td>
+          <td class="py-3.5 px-2"></td>
+        </tr>
+      `;
+    }
+
+    function buildExpenseModalInputs(existingValues = {}) {
+      const { columns, currency } = getCustomSettings();
+      const container = document.getElementById('dynamicExpenseInputs');
+      container.innerHTML = columns.map((col, idx) => {
+        const isLastOdd = (idx === columns.length - 1) && (columns.length % 2 === 1);
+        const val = existingValues[col.id] ? existingValues[col.id] : '';
+        return `
+          <div class="${isLastOdd ? 'col-span-2' : ''}">
+            <label class="block text-xs font-bold text-slate-500 mb-1">${col.label} (${currency})</label>
+            <input type="number" data-col-id="${col.id}" value="${val}" min="0" step="any" placeholder="0"
+              class="exp-dynamic-input w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-red-600 bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500" />
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openAddExpenseModal() {
+      document.getElementById('expenseModalTitle').textContent = 'Add Daily Expense';
+      document.getElementById('expenseId').value = '';
+      document.getElementById('expDate').value = getTodayISO();
+      buildExpenseModalInputs({});
+      document.getElementById('expenseModal').classList.remove('hidden');
+    }
+
+    function openEditExpenseModal(id) {
+      const item = getExpenses().find(e => e.id === id);
+      if (!item) return;
+      document.getElementById('expenseModalTitle').textContent = 'Edit Daily Expense';
+      document.getElementById('expenseId').value = item.id;
+      document.getElementById('expDate').value = item.date;
+      buildExpenseModalInputs(item.values || {});
+      document.getElementById('expenseModal').classList.remove('hidden');
+    }
+
+    function closeExpenseModal() {
+      document.getElementById('expenseModal').classList.add('hidden');
+    }
+
+    function saveExpenseRow(e) {
+      e.preventDefault();
+      const id = document.getElementById('expenseId').value;
+      const date = document.getElementById('expDate').value;
+      const inputs = document.querySelectorAll('.exp-dynamic-input');
+
+      const values = {};
+      inputs.forEach(inp => {
+        values[inp.dataset.colId] = parseFloat(inp.value) || 0;
+      });
+
+      const list = getExpenses();
+      if (id) {
+        const idx = list.findIndex(item => item.id === id);
+        if (idx !== -1) list[idx] = { id, date, values };
+      } else {
+        const existingIdx = list.findIndex(item => item.date === date);
+        if (existingIdx !== -1) {
+          const prevVals = list[existingIdx].values || {};
+          Object.keys(values).forEach(k => {
+            prevVals[k] = (Number(prevVals[k]) || 0) + values[k];
+          });
+          list[existingIdx].values = prevVals;
+        } else {
+          list.push({ id: 'exp_' + Date.now(), date, values });
+        }
+      }
+
+      setExpenses(list);
+      selectedMonth = date.slice(0, 7);
+      document.getElementById('monthFilter').value = selectedMonth;
+      document.getElementById('headerSubtitle').textContent = formatMonthTitle(selectedMonth);
+      closeExpenseModal();
+      renderExpenseTable();
+      showToast('Daily expense saved!');
+    }
+
+    function deleteExpenseRow(id) {
+      setExpenses(getExpenses().filter(item => item.id !== id));
+      renderExpenseTable();
+      showToast('Row deleted');
+    }
+
+    // =========================================================================
+    // INTERFACE 2A: NET TOTAL VIEW LOGIC
+    // =========================================================================
+    function renderNetTotalView() {
+      const cfg = getCustomSettings();
+      const cols = cfg.columns;
+      const expenses = getExpenses().filter(e => e.date && e.date.startsWith(selectedMonth));
+      const moneyEntries = getMoneyEntries().filter(m => m.date && m.date.startsWith(selectedMonth));
+
+      const catSums = {};
+      cols.forEach(c => catSums[c.id] = 0);
+      let totalExpense = 0;
+
+      expenses.forEach(e => {
+        const vals = e.values || {};
+        Object.keys(vals).forEach(k => {
+          const amt = Number(vals[k]) || 0;
+          totalExpense += amt;
+          if (catSums[k] !== undefined) catSums[k] += amt;
+        });
+      });
+
+      const totalAdded = moneyEntries.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+      const balance = totalAdded - totalExpense;
+
+      document.getElementById('ntTotalAdded').textContent = formatMoney(totalAdded);
+      document.getElementById('ntTotalExpense').textContent = formatMoney(totalExpense);
+
+      const balEl = document.getElementById('ntNetBalance');
+      balEl.textContent = formatMoney(balance);
+      balEl.className = `text-2xl sm:text-3xl font-extrabold mt-1 ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`;
+
+      const listEl = document.getElementById('moneyEntryList');
+      if (moneyEntries.length === 0) {
+        listEl.innerHTML = `<p class="text-xs text-slate-400 italic py-2">Ei month e ekhono kono tk entry kora hoyni.</p>`;
+      } else {
+        listEl.innerHTML = moneyEntries
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .map(m => `
+            <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs sm:text-sm">
+              <div>
+                <span class="font-extrabold text-green-600">+ ${formatMoney(m.amount)}</span>
+                <span class="ml-2 font-medium">${m.note || 'Money Entry'}</span>
+                <span class="text-slate-400 text-xs block sm:inline sm:ml-2">(${formatDisplayDate(m.date)})</span>
+              </div>
+              <button onclick="deleteMoneyEntry('${m.id}')" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg">✕</button>
+            </div>
+          `).join('');
+      }
+
+      document.getElementById('categoryBreakdownList').innerHTML = cols.map(c => `
+        <div class="bg-red-500/10 border border-red-500/20 rounded-2xl p-3.5 text-center">
+          <p class="text-xs font-semibold text-slate-500">${c.label}</p>
+          <p class="text-sm sm:text-base font-extrabold text-red-600 mt-1">${formatMoney(catSums[c.id] || 0)}</p>
+        </div>
+      `).join('');
+    }
+
+    function addMoneyEntry(e) {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('moneyAmount').value);
+      const date = document.getElementById('moneyDate').value;
+      const note = document.getElementById('moneyNote').value.trim();
+      if (!amount || amount <= 0) return;
+
+      const list = getMoneyEntries();
+      list.push({ id: 'mon_' + Date.now(), amount, date, note: note || 'Money Entry' });
+      setMoneyEntries(list);
+
+      document.getElementById('moneyAmount').value = '';
+      document.getElementById('moneyNote').value = '';
+      selectedMonth = date.slice(0, 7);
+      document.getElementById('monthFilter').value = selectedMonth;
+      document.getElementById('headerSubtitle').textContent = formatMonthTitle(selectedMonth);
+
+      renderNetTotalView();
+      showToast('Money added in Green!');
+    }
+
+    function deleteMoneyEntry(id) {
+      setMoneyEntries(getMoneyEntries().filter(m => m.id !== id));
+      renderNetTotalView();
+      showToast('Money entry deleted');
+    }
+
+    // =========================================================================
+    // INTERFACE 2B: LOAN VIEW LOGIC
+    // =========================================================================
+    function renderLoanView() {
+      const loans = getLoans().sort((a, b) => b.date.localeCompare(a.date));
+      const activeTaken = loans.filter(l => l.type === 'taken' && !l.settled).reduce((s, l) => s + (Number(l.amount) || 0), 0);
+      const activeGiven = loans.filter(l => l.type === 'given' && !l.settled).reduce((s, l) => s + (Number(l.amount) || 0), 0);
+
+      document.getElementById('loanModalTotalTaken').textContent = formatMoney(activeTaken);
+      document.getElementById('loanModalTotalGiven').textContent = formatMoney(activeGiven);
+
+      const container = document.getElementById('loanListContainer');
+      if (loans.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Kono loan record nai.</p>`;
+        return;
+      }
+
+      container.innerHTML = loans.map(loan => {
+        const isTaken = loan.type === 'taken';
+        const amountColor = isTaken ? 'text-green-600' : 'text-red-600';
+        const badgeClass = isTaken ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+        const badgeLabel = isTaken ? 'Loan Taken (Nichi)' : 'Loan Given (Dichi)';
+        const settleLabel = isTaken ? 'Mark Paid' : 'Mark Returned';
+
+        return `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl border border-slate-200/80 ${loan.settled ? 'opacity-60' : ''}">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${badgeClass}">${badgeLabel}</span>
+                <span class="font-bold text-sm">${loan.person}</span>
+                ${loan.settled ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">✓ Settled</span>' : ''}
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">${formatDisplayDate(loan.date)} ${loan.note ? `• ${loan.note}` : ''}</p>
+            </div>
+
+            <div class="flex items-center justify-between sm:justify-end gap-3 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+              <span class="text-base font-extrabold ${amountColor} ${loan.settled ? 'line-through' : ''}">
+                ${isTaken ? '+' : '-'} ${formatMoney(loan.amount)}
+              </span>
+              <div class="flex items-center gap-1.5">
+                <button onclick="toggleLoanSettled('${loan.id}')" class="text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-500/10 transition">
+                  ${loan.settled ? 'Undo' : settleLabel}
+                </button>
+                <button onclick="deleteLoanEntry('${loan.id}')" class="p-1.5 rounded-xl text-slate-400 hover:text-red-600">🗑</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addLoanEntry(e) {
+      e.preventDefault();
+      const type = document.querySelector('input[name="loanType"]:checked').value;
+      const person = document.getElementById('loanPerson').value.trim();
+      const amount = parseFloat(document.getElementById('loanAmount').value);
+      const date = document.getElementById('loanDate').value;
+      const note = document.getElementById('loanNote').value.trim();
+      if (!person || !amount || amount <= 0) return;
+
+      const loans = getLoans();
+      loans.push({ id: 'loan_' + Date.now(), type, person, amount, date, note, settled: false });
+      setLoans(loans);
+
+      document.getElementById('loanPerson').value = '';
+      document.getElementById('loanAmount').value = '';
+      document.getElementById('loanNote').value = '';
+      renderLoanView();
+      showToast(type === 'taken' ? 'Loan Taken added!' : 'Loan Given added!');
+    }
+
+    function toggleLoanSettled(id) {
+      const loans = getLoans();
+      const idx = loans.findIndex(l => l.id === id);
+      if (idx !== -1) {
+        loans[idx].settled = !loans[idx].settled;
+        setLoans(loans);
+        renderLoanView();
+        showToast(loans[idx].settled ? 'Marked as settled!' : 'Reopened loan');
+      }
+    }
+
+    function deleteLoanEntry(id) {
+      setLoans(getLoans().filter(l => l.id !== id));
+      renderLoanView();
+      showToast('Loan deleted');
+    }
+
+    // =========================================================================
+    // INTERFACE 2C: REMINDER VIEW LOGIC
+    // =========================================================================
+    function formatTime12h(time24) {
+      if (!time24) return '';
+      const [hStr, mStr] = time24.split(':');
+      let h = parseInt(hStr, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${mStr} ${ampm}`;
+    }
+
+    function renderReminderView() {
+      const cfg = getReminderConfig();
+      document.getElementById('reminderEnabledToggle').checked = cfg.enabled;
+      document.getElementById('reminderTimeInput').value = cfg.time || '22:00';
+      document.getElementById('reminderStatusText').textContent = cfg.enabled
+        ? `Active daily at ${formatTime12h(cfg.time)}`
+        : 'Currently disabled';
+
+      const statusEl = document.getElementById('notifPermissionStatus');
+      if (!('Notification' in window)) {
+        statusEl.textContent = 'In-App Banner Active';
+      } else {
+        statusEl.textContent = Notification.permission === 'granted' ? 'Allowed ✓' : 'Tap Allow Notification';
+      }
+    }
+
+    function updateReminderBadge() {
+      const cfg = getReminderConfig();
+      const badge = document.getElementById('menuReminderBadge');
+      if (cfg.enabled) {
+        badge.textContent = formatTime12h(cfg.time);
+        badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700';
+      } else {
+        badge.textContent = 'OFF';
+        badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500';
+      }
+    }
+
+    function toggleReminderSetting() {
+      const enabled = document.getElementById('reminderEnabledToggle').checked;
+      const time = document.getElementById('reminderTimeInput').value || '22:00';
+      const cfg = getReminderConfig();
+      cfg.enabled = enabled;
+      cfg.time = time;
+      setReminderConfig(cfg);
+      renderReminderView();
+      updateReminderBadge();
+    }
+
+    function saveReminderTime() {
+      const time = document.getElementById('reminderTimeInput').value || '22:00';
+      const cfg = getReminderConfig();
+      cfg.time = time;
+      setReminderConfig(cfg);
+      renderReminderView();
+      updateReminderBadge();
+    }
+
+    function saveReminderAndBack() {
+      toggleReminderSetting();
+      const cfg = getReminderConfig();
+      showToast(cfg.enabled ? `Reminder set for ${formatTime12h(cfg.time)}` : 'Reminder turned off');
+      switchView('expenseView');
+    }
+
+    function requestNotifPermission() {
+      if (!('Notification' in window)) {
+        showToast('In-app banner alert will notify you!');
+        return;
+      }
+      Notification.requestPermission().then(() => {
+        renderReminderView();
+        showToast(`Permission: ${Notification.permission}`);
+      });
+    }
+
+    function triggerTestReminder() {
+      fireReminderAlert(true);
+    }
+
+    function dismissReminderBanner() {
+      document.getElementById('inAppReminderBanner').classList.add('hidden');
+    }
+
+    function fireReminderAlert(isTest = false) {
+      document.getElementById('inAppReminderBanner').classList.remove('hidden');
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch (e) {}
+
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(isTest ? 'Test Expense Reminder' : 'Daily Expense Reminder!', {
+          body: 'Ajker khoroj gulo entry korar somoy hoyeche!'
+        });
+      }
+    }
+
+    setInterval(() => {
+      const cfg = getReminderConfig();
+      if (!cfg.enabled || !cfg.time) return;
+      const now = new Date();
+      const todayStr = getTodayISO();
+      const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (currentHHMM === cfg.time && cfg.lastTriggeredDate !== todayStr) {
+        cfg.lastTriggeredDate = todayStr;
+        setReminderConfig(cfg);
+        fireReminderAlert(false);
+      }
+    }, 20000);
+
+    // =========================================================================
+    // INTERFACE 2D: CUSTOMISED VIEW LOGIC
+    // =========================================================================
+    function renderCustomisedView() {
+      const cfg = getCustomSettings();
+      document.getElementById('customAppTitle').value = cfg.appTitle || 'Daily Expense';
+      document.getElementById('customCurrency').value = cfg.currency || 'TK';
+      document.getElementById('darkModeToggle').checked = !!cfg.darkMode;
+
+      const listEl = document.getElementById('customColumnsList');
+      listEl.innerHTML = cfg.columns.map((col, index) => `
+        <div class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200/80">
+          <span class="text-xs font-extrabold text-slate-400 w-5 text-center">${index + 1}</span>
+          <input type="text" value="${col.label}" onchange="renameCustomColumn('${col.id}', this.value)"
+            class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs sm:text-sm font-bold bg-transparent focus:outline-none" />
+          <input type="text" value="${col.sub || ''}" placeholder="Sub-label" onchange="updateColumnSub('${col.id}', this.value)"
+            class="w-24 sm:w-32 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-transparent focus:outline-none" />
+          ${cfg.columns.length > 1 ? `
+            <button onclick="removeCustomColumn('${col.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-red-600" title="Remove Column">✕</button>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function saveAppIdentity() {
+      const cfg = getCustomSettings();
+      cfg.appTitle = document.getElementById('customAppTitle').value.trim() || 'Daily Expense';
+      cfg.currency = document.getElementById('customCurrency').value.trim() || 'TK';
+      setCustomSettings(cfg);
+      applyThemeAndBranding();
+      showToast('App name & currency updated!');
+    }
+
+    function renameCustomColumn(colId, newLabel) {
+      const trimmed = newLabel.trim();
+      if (!trimmed) return;
+      const cfg = getCustomSettings();
+      const col = cfg.columns.find(c => c.id === colId);
+      if (col) {
+        col.label = trimmed;
+        setCustomSettings(cfg);
+        showToast('Column renamed!');
+      }
+    }
+
+    function updateColumnSub(colId, newSub) {
+      const cfg = getCustomSettings();
+      const col = cfg.columns.find(c => c.id === colId);
+      if (col) {
+        col.sub = newSub.trim();
+        setCustomSettings(cfg);
+      }
+    }
+
+    function addNewCustomColumn(e) {
+      e.preventDefault();
+      const label = document.getElementById('newColLabel').value.trim();
+      const sub = document.getElementById('newColSub').value.trim();
+      if (!label) return;
+
+      const cfg = getCustomSettings();
+      cfg.columns.push({ id: 'col_' + Date.now(), label, sub });
+      setCustomSettings(cfg);
+
+      document.getElementById('newColLabel').value = '';
+      document.getElementById('newColSub').value = '';
+      renderCustomisedView();
+      showToast(`"${label}" column added!`);
+    }
+
+    function removeCustomColumn(colId) {
+      const cfg = getCustomSettings();
+      if (cfg.columns.length <= 1) return;
+      cfg.columns = cfg.columns.filter(c => c.id !== colId);
+      setCustomSettings(cfg);
+      renderCustomisedView();
+      showToast('Column removed');
+    }
+
+    function resetDefaultColumns() {
+      const cfg = getCustomSettings();
+      cfg.columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS));
+      setCustomSettings(cfg);
+      renderCustomisedView();
+      showToast('Default columns restored!');
+    }
+
+    function toggleDarkMode() {
+      const cfg = getCustomSettings();
+      cfg.darkMode = document.getElementById('darkModeToggle').checked;
+      setCustomSettings(cfg);
+      applyThemeAndBranding();
+    }
+
+    function setAccentTheme(hexColor) {
+      const cfg = getCustomSettings();
+      cfg.accentColor = hexColor;
+      setCustomSettings(cfg);
+      applyThemeAndBranding();
+      showToast('App theme color updated!');
+    }
+
+    function exportBackupJSON() {
+      const payload = {
+        expenses: getExpenses(),
+        moneyEntries: getMoneyEntries(),
+        loans: getLoans(),
+        reminder: getReminderConfig(),
+        custom: getCustomSettings()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `expense-app-backup-${getTodayISO()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Backup file downloaded!');
+    }
+
+    function importBackupJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.expenses) setExpenses(data.expenses);
+          if (data.moneyEntries) setMoneyEntries(data.moneyEntries);
+          if (data.loans) setLoans(data.loans);
+          if (data.reminder) setReminderConfig(data.reminder);
+          if (data.custom) setCustomSettings(data.custom);
+          applyThemeAndBranding();
+          renderCustomisedView();
+          updateReminderBadge();
+          showToast('Backup restored successfully!');
+        } catch (err) {
+          showToast('Invalid backup file!');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function openConfirmDialog(title, message, onConfirm) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      const okBtn = document.getElementById('confirmOkBtn');
+      okBtn.onclick = () => {
+        closeConfirmDialog();
+        onConfirm();
+      };
+      document.getElementById('confirmDialog').classList.remove('hidden');
+    }
+
+    function closeConfirmDialog() {
+      document.getElementById('confirmDialog').classList.add('hidden');
+    }
+
+    function confirmResetAllData() {
+      openConfirmDialog(
+        'Reset All App Data?',
+        'Sob expense, loan ar custom settings muche jabe.',
+        () => {
+          Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+          initDefaultData();
+          applyThemeAndBranding();
+          switchView('expenseView');
+          showToast('All data reset!');
+        }
+      );
+    }
+
+    // =========================================================================
+    // APP BOOTSTRAP
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      initDefaultData();
+      applyThemeAndBranding();
+      document.getElementById('monthFilter').value = selectedMonth;
+      updateReminderBadge();
+      switchView('expenseView');
+    });
+  </script>
+</body>
+</html>

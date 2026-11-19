@@ -1,0 +1,20 @@
+মোবাইল দিয়ে Cloud Build করে APK পাওয়ার নিয়ম
+
+এই ZIP-এ Android project এবং GitHub Actions workflow আছে। GitHub-এর cloud computer APK build করবে; আপনার ফোনে Android SDK লাগবে না।
+
+১) ZIP extract করুন।
+২) github.com এ account খুলে sign in করুন।
+৩) New repository তৈরি করুন (যেমন daily-expense-tracker)।
+৪) Extract করা project-এর সব ফাইল ও folder repository-তে upload করুন। .github folder-টিও upload হতে হবে।
+৫) Commit changes করুন।
+৬) Repository-এর Actions tab খুলুন। "Build Android APK" workflow চলবে।
+৭) সবুজ check mark এলে workflow run খুলুন; নিচে Artifacts থেকে "Daily-Expense-Tracker-APK" download করুন।
+৮) ZIP extract করে app-debug.apk tap করে install করুন। Android চাইলে এই app/source-এর জন্য "Install unknown apps" অনুমতি দিন।
+
+নোট:
+- GitHub cloud build চালাতে GitHub account ও internet প্রয়োজন।
+- প্রথম build-এ কয়েক মিনিট লাগতে পারে।
+- এটি debug APK; Play Store release signing করা নয়।
+- HTML-এর কিছু styling/font CDN থেকে আসে, তাই সেগুলো লোড হতে internet লাগতে পারে।
+- Reminder feature native Android alarm নয়; নির্ভরযোগ্য background alarm-এর নিশ্চয়তা নেই।
+- নিজের হিসাব নিয়মিত Backup Export করে রাখুন।
